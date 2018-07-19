@@ -1,0 +1,29 @@
+# Object files
+*.o
+*.ko
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects
+*.so
+*.so.*
+
+# Executables
+*.out
+
+sitewho
+
+Makefile
+config.h
+config.status
+config.cache
+config.log
+autom4te.cache/
+*.swp
+
+*.pid
+*.bak
+*.log
+*.new
