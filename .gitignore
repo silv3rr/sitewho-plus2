@@ -15,7 +15,7 @@
 
 sitewho
 
-Makefile
+#Makefile
 config.h
 config.status
 config.cache
