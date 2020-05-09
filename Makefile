@@ -4,13 +4,13 @@ RM=rm -f
 MAKE=make
 INSTALL=install
 
-CFLAGS=-g -O2 -W -Wall -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Winline -DGLVERSION=20264 -D_WITH_ALTWHO -lmaxminddb
+CFLAGS=-g -O2 -W -Wall -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Winline -DGLVERSION=20264 -D_WITH_ALTWHO
 MAXMINDDB = $(shell ld -o /dev/null -lmaxminddb >/dev/null 2>&1; echo $$?)
 
 all: sitewho
 
 sitewho: sitewho.c
-	$(CC) $(CFLAGS) -o sitewho sitewho.c
+	$(CC) $(CFLAGS) -o sitewho sitewho.c -lmaxminddb
 ifeq (1,${MAXMINDDB})
 	@echo
 	@echo "Make sure you have libmaxminddb installed, see README.md for details"
