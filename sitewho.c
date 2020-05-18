@@ -422,8 +422,8 @@ get_mmdb(char *ipaddr)
 void 
 showusers(int n, int mode, char *ucomp, char raw)
 {
-	char		status    [20];
-	char		online    [20];
+	char		status    [30];
+	char		online    [30];
 	char           *filename = 0;
 	char		realfile  [512];
 	char		bar       [20];
