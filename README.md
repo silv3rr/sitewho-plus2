@@ -26,7 +26,7 @@ Now run make:
 So just run sitewho+2 from current dir.
 
 geoipupdate downloads and updates the required `/var/lib/GeoIP/GeoLite2-Country.mmdb` file.
-It needs /etc/GeoIP.conf which should have been created by `make install`. If not, try: `make geoipconf`.
+It needs /etc/GeoIP.conf which should have been created by `make install`. If not, check Makefile.
 
 If geoipupdate runs OK you can add a weekly cron to keep mmdb updated:
 `ln -s `which geoipupdate` /etc/cron.weekly/geoipupdate`
