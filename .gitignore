@@ -27,3 +27,7 @@ autom4te.cache/
 *.bak
 *.log
 *.new
+
+distclean.sh
+
+shm/

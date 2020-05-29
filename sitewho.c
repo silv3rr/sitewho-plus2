@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -56,13 +55,20 @@ int
 main(int argc, char **argv)
 {
 
-#ifndef _WITH_SS5
-	char		raw_output = 0;
+/*
+#ifdef  _WITH_GEOIP
+        char		raw_output = 4;
 	int		user_idx = 1;
 #else
-	char		raw_output = 2;
-	int		user_idx = 2;
+*/
+#ifndef _WITH_SS5
+        char		raw_output = 0;
+        int		user_idx = 1;
+#else
+        char		raw_output = 0;
+        int		user_idx = 2;
 #endif
+//#endif
 	int		gnum = 0;
 	readconfig(argv[0]);
 	if (!ipckey)
@@ -106,6 +112,12 @@ main(int argc, char **argv)
 			raw_output = 3;
 		}
 	}
+
+#ifdef DEBUG
+	printf("DEBUG: raw_output=%d\n", raw_output);
+	printf("DEBUG: user_idx=%d\n", user_idx);
+#endif
+
 	if ((shmid = shmget((key_t) strtoll(ipckey, NULL, 16), 0, 0)) == -1) {
 		if (argc == 1 || (raw_output)) {
 			if (!raw_output && strlen(header))
@@ -138,6 +150,9 @@ main(int argc, char **argv)
 		show(header);
 
 	totusers = (ipcbuf.shm_segsz / sizeof(struct ONLINE));
+#ifdef DEBUG
+        printf("DEBUG: if argc=%d argv=%s raw_output=%d\n", argc, argv[2], raw_output);
+#endif
 	if (raw_output < 2)
 		showusers((totusers > maxusers ? maxusers : totusers), argc - raw_output - 1, argv[user_idx], raw_output);
 	else if (argc == 1)
@@ -333,14 +348,21 @@ host2ip (char *userhost)
 	token = (char **)malloc(sizeof(void*)*64);
 	//rhost = strdup(user[x].host);
 	rhost = strdup(userhost);
-	//if (debug) { printf("DEBUG: original hostname: '%s'\n", hostname); }
 
 	int j = 0; while( (*(token+j) = strsep(&rhost,"@")) != NULL )
 		j++;
 
-	//if (debug) { for (k=j-1; k>=0; k--) { printf("DEBUG: token+n: %s\n",*(token+k) ); } }
-	if (debug) { printf("DEBUG: token+1 %s\n", *(token+1)); }
 	hostname = *(token+1);
+
+#ifdef DEBUG
+#if (DEBUG > 1) 
+	printf("DEBUG: (orig) hostname='%s'\n", hostname);
+        for (k=j-1; k>=0; k--) {
+		printf("DEBUG: token+n=%s\n",*(token+k) );
+	}
+	printf("DEBUG: token+1 %s\n", *(token+1));
+#endif
+#endif
 
 	free(rhost);
 	free(token);
@@ -350,7 +372,11 @@ host2ip (char *userhost)
 			addr_list = (struct in_addr **) he->h_addr_list;
 			for (k = 0; he->h_addr_list[k] != NULL; k++) {
 				strcpy(ibuf, inet_ntoa(*addr_list[k]));
-				if (debug) { printf("DEBUG: ibuf: %s\n", ibuf); }
+#ifdef DEBUG
+#if (DEBUG > 1) 
+				printf("DEBUG: ibuf=%s\n", ibuf);
+#endif
+#endif
 			}
 			if (ibuf[1]) {
 				ipaddr = malloc(sizeof(ibuf)+1);
@@ -358,7 +384,9 @@ host2ip (char *userhost)
 			}
 		}
 	}
-	//printf("DEBUG: return ipaddr: %s\n", ipaddr);
+#ifdef DEBUG
+	printf("DEBUG: return ipaddr=%s\n", ipaddr);
+#endif
 	return ipaddr;
 }
 
@@ -366,8 +394,8 @@ char *
 get_mmdb(char *ipaddr)
 {
 	char *country_code;
+        country_code = "\"\"";
 	char *ip_address = ipaddr;
-	country_code = "\"\"";
 
 	MMDB_s mmdb;
 	MMDB_open(mmdb_file, MMDB_MODE_MMAP, &mmdb);
@@ -392,7 +420,6 @@ get_mmdb(char *ipaddr)
 		MMDB_dump_entry_data_list(memstream, entry_data_list, 2);
 		fflush(memstream);
 		//int i = 0; while( (*(r+i) = strsep(&membuf, "\n")) != NULL )
-
 		i = 0 ; while ((line[i] = strsep(&membuf,"\n")) != NULL )
 			i++;
 		//for (int i = 0; i < sizeof(line)/sizeof(line[0]); i++)
@@ -401,7 +428,9 @@ get_mmdb(char *ipaddr)
 				i++;
 				sprintf(match, "%.14s", line[i]);
 				country_code = strstr(match, "\"");
-				if (debug) { printf("DEBUG: line: %i %s\n", i, line[i]); }
+#ifdef DEBUG
+				printf("DEBUG: line=%i %s\n", i, line[i]);
+#endif
 				break;
 			} else {
 				i++;
@@ -415,13 +444,16 @@ get_mmdb(char *ipaddr)
 	MMDB_free_entry_data_list(entry_data_list);
 	MMDB_close(&mmdb);
 
-	//printf("DEBUG: return country_code: %s", country_code);
+#ifdef DEBUG
+        printf("DEBUG: return country_code=%s\n", country_code);
+#endif
 	return country_code;
 }
 
 void 
 showusers(int n, int mode, char *ucomp, char raw)
 {
+        //debug = 0;
 	char		status    [30];
 	char		online    [30];
 	char           *filename = 0;
@@ -438,6 +470,10 @@ showusers(int n, int mode, char *ucomp, char raw)
 	unsigned	hours;
 	unsigned char	minutes;
 	unsigned	seconds;
+        char 		userip[INET_ADDRSTRLEN] = "0.0.0.0";
+        char 		country[5] = "\"\"";
+	char 		iso_code[3] = "xX";
+
 
 	gettimeofday(&tstop, (struct timezone *)0);
 
@@ -447,6 +483,30 @@ showusers(int n, int mode, char *ucomp, char raw)
 	for (x = 0; x < n; x++) {
 		if (!user[x].procid)
 			continue;
+
+		// get geoip
+                sprintf (userip, "%s", host2ip(user[x].host));
+                sprintf (country, "%s", get_mmdb(userip));
+
+ 		if (strstr(country, "\"\"") != NULL)
+			sprintf (iso_code, "%s", "xX");
+		else
+			sprintf (iso_code, "%c%c", country[1], country[2]);
+
+#ifdef DEBUG
+		printf("DEBUG: country=%s iso_code=%s\n",country, iso_code);
+#if (DEBUG > 1) 
+		printf("DEBUG: (begin) raw=\"%d\" status=\"%s\"\n",raw, status);
+		//printf("DEBUG: filename=\"%\"s\n",user[x].filename);
+		//printf("DEBUG: realfile=\"%s\"\n",user[x].realfile);
+		//printf("DEBUG: bar=%s\n",user[x].bar);
+		//printf("DEBUG: mb_xfered=\"%f\"\n",user[x].mb_xfered);
+#endif
+#if (DEBUG > 2) 
+		printf("DEBUG: cmp=%d\n", strcmp(country, "\"\""));
+		printf("DEBUG: strstr=%s\n", strstr(country, "\"\""));
+#endif
+#endif
 
 		maskchar = ' ';
 		mask = noshow = 0;
@@ -479,7 +539,7 @@ showusers(int n, int mode, char *ucomp, char raw)
 
 			if (debug) {
 				printf("DEBUG SPEED INFO: username   = %s\nDEBUG SPEED INFO: time spent = %.2f seconds\nDEBUG SPEED INFO: transfered = %.0f KB\nDEBUG SPEED INFO: speed      = %.2f KB/s\n", user[x].username, ((tstop.tv_sec - user[x].tstart.tv_sec) * 1. + (tstop.tv_usec - user[x].tstart.tv_usec) / 1000000.), (double)(user[x].bytes_xfer / 1024.), speed);
-				}
+			}
 			if ((!noshow && !mask && !(maskchar == '*')) || chidden) {
 				total_up_speed += speed;
 				uploads++;
@@ -539,7 +599,7 @@ showusers(int n, int mode, char *ucomp, char raw)
 
 			if (debug) {
 				printf("DEBUG SPEED INFO: username   = %s\nDEBUG SPEED INFO: time spent = %.2f seconds\nDEBUG SPEED INFO: transfered = %.0f KB\nDEBUG SPEED INFO: speed      = %.2f KB/s\n", user[x].username, ((tstop.tv_sec - user[x].tstart.tv_sec) * 1. + (tstop.tv_usec - user[x].tstart.tv_usec) / 1000000.), (double)(user[x].bytes_xfer / 1024.), speed);
-				}
+                                }
 
 			if ((!noshow && !mask && !(maskchar == '*')) || chidden) {
 				total_dn_speed += speed;
@@ -581,11 +641,17 @@ showusers(int n, int mode, char *ucomp, char raw)
 				else
 					browsers++;
 			}
+#ifdef DEBUG
+			printf("DEBUG: raw=\"%d\" hours=\"%d\" ID=\"%d\"\n", raw, hours, (hours * 60 * 60) + (minutes * 60) + seconds);
+			printf("DEBUG: idle|%02d:%02d:%02d\n", hours, minutes, seconds);
+#endif
 			if (!raw)
+				//sprintf(status, "Idle: %02d:%02d:%02d", (unsigned short)hours, minutes, seconds);
 				sprintf(status, "Idle: %02d:%02d:%02d", hours, minutes, seconds);
 			else if (raw == 1)
 				sprintf(status, "\"ID\" \"%d\"", (hours * 60 * 60) + (minutes * 60) + seconds);
 			else
+				//sprintf(status, "idle|%02d:%02d:%02d", (unsigned short)hours, minutes, seconds);
 				sprintf(status, "idle|%02d:%02d:%02d", hours, minutes, seconds);
 		}
 
@@ -601,14 +667,29 @@ showusers(int n, int mode, char *ucomp, char raw)
 		}
 		sprintf(online, "%02d:%02d:%02d", hours, minutes, seconds);
 
+		/*
+		 * DEBUG: orig=1 enables 'original' output without country code
+		 */
+                int orig = 0;
 		if (mode == 0 && raw != 3 ) {
 			if (!raw && (showall || (!noshow && !mask && !(maskchar == '*')))) {
-				if (mb_xfered)
-					printf("|%1c%-16.16s/%-10.10s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, mb_xfered);
-				else
-					printf("|%1c%-16.16s/%-10.10s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, pct, bar);
+                                if (orig) {
+                                        if (mb_xfered)
+                                                printf("|%1c%-16.16s/%-10.10s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, mb_xfered);
+                                        else
+                                                printf("|%1c%-16.16s/%-10.10s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, pct, bar);
 
-				printf("| %-27.27s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, online, filename);
+                                        printf("| %-27.27s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, online, filename);
+
+                                        printf("+-----------------------------------------------------------------------+\n");
+                                }
+				if (mb_xfered)
+					printf("|%1c%-14.14s/%-9.9s %-2.2s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, mb_xfered);
+				else
+					printf("|%1c%-14.14s/%-9.9s %-2.2s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, pct, bar);
+
+                                printf("| %-11.11s %15.15s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, userip, online, filename);
+
 				printf("+-----------------------------------------------------------------------+\n");
 			} else if (raw == 1 && (showall || (!noshow && !mask && !(maskchar == '*')))) {
 				/*
@@ -616,8 +697,10 @@ showusers(int n, int mode, char *ucomp, char raw)
 				 * / TagLine / Online / Filename / Part
 				 * up/down-loaded / Current dir / PID
 				 */
-				//printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ?pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
-				printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\" \"%s\" \"%s\" %s\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid, user[x].host, host2ip(user[x].host), get_mmdb(host2ip(user[x].host)));
+                                if (orig) {
+                                        printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
+                                }
+                                printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\" \"%s\" \"%s\" %s\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid, user[x].host, userip, country);
 			} else if (showall || (!noshow && !mask && !(maskchar == '*'))) {
 				printf("%s|%s|%s|%s|%s\n", user[x].username, get_g_name(user[x].groupid), user[x].tagline, status, filename);
 			}
@@ -638,7 +721,10 @@ showusers(int n, int mode, char *ucomp, char raw)
 				else
 					printf("%s : %1c%s/%s has been online for %8.8s.\n", status, maskchar, user[x].username, get_g_name(user[x].groupid), online);
 			} else if (raw == 1 && (showall || (!noshow && !mask && !(maskchar == '*')))) {
-				printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
+                                if (orig) {
+                                        printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
+                                }
+                                printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\" \"%s\" \"%s\" %s\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid, user[x].host, userip, country);
 			} else if (showall || (!noshow && !mask && !(maskchar == '*'))) {
 				printf("%s|%s|%s|%s|%s\n", user[x].username, get_g_name(user[x].groupid), user[x].tagline, status, filename);
 			}
@@ -795,7 +881,6 @@ readconfig(char *arg)
 	if (debug) {
 		printf("DEBUG: glversion=\"%d\"\nDEBUG: header=\"%s\"\nDEBUG: footer=\"%s\"\nDEBUG: mpaths=\"%s\"\nDEBUG: husers=\"%s\"\nDEBUG: hgroups=\"%s\"\nDEBUG: glpath=\"%s\"\nDEBUG: ipckey=\"%s\"\nDEBUG: glgroup=\"%s\"\nDEBUG: nocase=\"%s\"\nDEBUG: count_hidden=\"%s\"\nDEBUG: showall=\"%d\"\nDEBUG: maxusers=\"%d\"\nDEBUG: idle_barrier=\"%d\"\nDEBUG: threshold=\"%d\"\nDEBUG: mmdb_file=\"%s\"\n", glversion, header, footer, mpaths, husers, hgroups, glpath, ipckey, glgroup, nocase, count_hidden, showall, maxusers, idle_barrier, threshold, mmdb_file);
 	}
-
 //	if (filesize("") == 1)
 //		*glpath = 0;
 }
