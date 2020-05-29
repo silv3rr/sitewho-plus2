@@ -29,7 +29,7 @@ geoipupdate downloads and updates the required `/var/lib/GeoIP/GeoLite2-Country.
 It needs /etc/GeoIP.conf which should have been created by `make install`. If not, check Makefile.
 
 If geoipupdate runs OK you can add a weekly cron to keep mmdb updated:
-`ln -s `which geoipupdate` /etc/cron.weekly/geoipupdate`
+`ln -s \`which geoipupdate\` /etc/cron.weekly/geoipupdate`
 On RedHat installing geoipupdate-cron takes care of this
 
 Don't forget to Signup (free) and add your AccountId and LicenseKey to /etc/GeoIP.conf
