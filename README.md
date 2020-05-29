@@ -34,6 +34,11 @@ On RedHat installing geoipupdate-cron takes care of this
 
 ## Usage
 
-Only raw mode is changed, not normal output and the other modes. The new IP and CC fields should show up at the end of each line:
-`sitewho --raw` 
+GeoIP info is added to all modes: 
+
+`sitewho` 
+
+In 'raw' mode the new IP and CC fields should show up at the end of each line:
+
+`sitewho --raw`
 
