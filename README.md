@@ -22,7 +22,7 @@ Or download from:
 
 Now run make: `make && make install`
 
-`make install` will not copy/create any sitewho files to your glftpd dir, to keep it seperate from the normal version, so just run sitewho+2 from current dir
+`make install` will not copy/create any sitewho files to your glftpd dir to keep it seperate from the normal version, so just run sitewho+2 from current dir
 
 Pkg 'geoipupdate' downloads and updates the required '/var/lib/GeoIP/GeoLite2-Country.mmdb' file.
 
