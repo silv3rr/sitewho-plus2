@@ -33,6 +33,7 @@ If geoipupdate runs OK you can add a weekly cron to keep mmdb updated:
 On RedHat installing geoipupdate-cron takes care of this
 
 Don't forget to Signup (free) and add your AccountId and LicenseKey to /etc/GeoIP.conf
+
 <https://www.maxmind.com/en/geolite2/signup>
 
 ## Usage
