@@ -12,7 +12,7 @@ CFLAGS = -g -O2 -W -Wall -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wstrict-
 LIBS = -lmaxminddb
 MAXMINDDB = $(shell ld -o /dev/null -lmaxminddb >/dev/null 2>&1; echo $$?)
 
-.PHONY: all debug geoip
+.PHONY: all debug orig geoip
 
 sitewho:
 	$(CC) $(CFLAGS) -o $@ $@.c $(LIBS)
@@ -20,16 +20,18 @@ sitewho:
 debug:
 	$(CC) $(CFLAGS) -o sitewho sitewho.c $(LIBS) -DDEBUG=$(DBG_LEVEL)
 
-geoip:
-	$(CC) $(CFLAGS) -o sitewho sitewho.c $(LIBS) -D_WITH_GEOIP
+orig:
+	$(CC) $(CFLAGS) -o sitewho sitewho.c $(LIBS) -D_WITH_ORIG
 
-install: all
+#install: all
 #	$(INSTALL) -m755 sitewho $(prefix)/bin
 #	@(printf "\nInstalling sitewho head/foot/conf files...\n")
 #	@([ -f "$(prefix)/ftp-data/misc/who.foot" ] && echo "$(prefix)/ftp-data/misc/who.foot already exists. NOT overwriting it." || $(INSTALL) -m644 who.foot $(prefix)/ftp-data/misc)
 #	@([ -f "$(prefix)/ftp-data/misc/who.head" ] && echo "$(prefix)/ftp-data/misc/who.head already exists. NOT overwriting it." || $(INSTALL) -m644 who.head $(prefix)/ftp-data/misc)
 #	@([ -f "$(prefix)/bin/sitewho.conf" ] && echo "$(prefix)/bin/sitewho.conf already exists. NOT overwriting it." || $(INSTALL) -m644 sitewho.conf $(prefix)/bin)
 #	@(echo)
+
+install: all
 	@(printf "\nCreating sitewho.conf file...\n")
 	@([ -f "$(prefix)/sitewho.conf" ] && echo "$(prefix)/bin/sitewho.conf already exists. NOT overwriting it." || $(INSTALL) -m644 sitewho.conf.in $(prefix)/sitewho.conf)
 	@(printf "\nCreating GeoIP2 config...\n")

@@ -2,6 +2,8 @@
 glrootpath = /glftpd
 headerfile = /ftp-data/misc/who.head
 footerfile = /ftp-data/misc/who.foot
+separatorfile = /ftp-data/misc/who.sep
+delimiter = :
 maskeddirectories = /site/groups/ /site/admins/ /site/private/
 hiddenusers = sitebot siteop
 hiddengroups = bots siteops

@@ -26,11 +26,13 @@ long long	shmid;
 struct shmid_ds	ipcbuf;
 struct stat	filestat;
 
-char           *header = 0, *footer = 0, *glpath = 0, *mpaths = 0, *husers = 0, *hgroups = 0, *ipckey = 0, *glgroup = 0, *nocase = 0, *mmdb_file = 0,
+char           *header = 0, *footer = 0, *glpath = 0, *mpaths = 0, *husers = 0, *hgroups = 0, *ipckey = 0, *glgroup = 0, *nocase = 0,
+	       *mmdb_file = 0, *separator = 0, *delimiter = 0,
                *def_ipckey = "0x0000DEAD", *def_glgroup = "/etc/group", *def_nocase = "false", 
 	       *def_husers = "pzs-ng", *def_hgroups = "pzs-ng", *def_mpaths = "/ftp-data/pzs-ng", *def_glpath = "/glftpd/",
 	       *def_count_hidden = "true", *count_hidden = 0, *def_header = "/ftp-data/misc/who.head",
-	       *def_footer = "/ftp-data/misc/who.foot", *def_mmdb_file = "/var/lib/GeoIP/GeoLite2-Country.mmdb";
+	       *def_footer = "/ftp-data/misc/who.foot", *def_mmdb_file = "/var/lib/GeoIP/GeoLite2-Country.mmdb",
+	       *def_separator = "/ftp-data/misc/who.sep", *def_delimiter = "|";
 int		maxusers = 20 , showall = 0, uploads = 0, downloads = 0, onlineusers = 0, browsers = 0, idlers = 0, chidden = 1,
 		idle_barrier = -1, def_idle_barrier = 30, threshold = -1, def_threshold = 1024;
 double		total_dn_speed = 0, total_up_speed = 0;
@@ -55,12 +57,6 @@ int
 main(int argc, char **argv)
 {
 
-/*
-#ifdef  _WITH_GEOIP
-        char		raw_output = 4;
-	int		user_idx = 1;
-#else
-*/
 #ifndef _WITH_SS5
         char		raw_output = 0;
         int		user_idx = 1;
@@ -68,7 +64,6 @@ main(int argc, char **argv)
         char		raw_output = 0;
         int		user_idx = 2;
 #endif
-//#endif
 	int		gnum = 0;
 	readconfig(argv[0]);
 	if (!ipckey)
@@ -93,6 +88,10 @@ main(int argc, char **argv)
 		footer = def_footer;
 	if (!mmdb_file)
 		mmdb_file = def_mmdb_file;
+	if (!delimiter)
+		delimiter = def_delimiter;
+	if (!separator)
+		separator = def_separator;
 	if (idle_barrier < 0)
 		idle_barrier = def_idle_barrier;
 	if (threshold < 1)
@@ -453,7 +452,6 @@ get_mmdb(char *ipaddr)
 void 
 showusers(int n, int mode, char *ucomp, char raw)
 {
-        //debug = 0;
 	char		status    [30];
 	char		online    [30];
 	char           *filename = 0;
@@ -646,12 +644,10 @@ showusers(int n, int mode, char *ucomp, char raw)
 			printf("DEBUG: idle|%02d:%02d:%02d\n", hours, minutes, seconds);
 #endif
 			if (!raw)
-				//sprintf(status, "Idle: %02d:%02d:%02d", (unsigned short)hours, minutes, seconds);
 				sprintf(status, "Idle: %02d:%02d:%02d", hours, minutes, seconds);
 			else if (raw == 1)
 				sprintf(status, "\"ID\" \"%d\"", (hours * 60 * 60) + (minutes * 60) + seconds);
 			else
-				//sprintf(status, "idle|%02d:%02d:%02d", (unsigned short)hours, minutes, seconds);
 				sprintf(status, "idle|%02d:%02d:%02d", hours, minutes, seconds);
 		}
 
@@ -667,39 +663,36 @@ showusers(int n, int mode, char *ucomp, char raw)
 		}
 		sprintf(online, "%02d:%02d:%02d", hours, minutes, seconds);
 
-		/*
-		 * DEBUG: orig=1 enables 'original' output without country code
-		 */
-                int orig = 0;
 		if (mode == 0 && raw != 3 ) {
 			if (!raw && (showall || (!noshow && !mask && !(maskchar == '*')))) {
-                                if (orig) {
-                                        if (mb_xfered)
-                                                printf("|%1c%-16.16s/%-10.10s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, mb_xfered);
-                                        else
-                                                printf("|%1c%-16.16s/%-10.10s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, pct, bar);
-
-                                        printf("| %-27.27s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, online, filename);
-
-                                        printf("+-----------------------------------------------------------------------+\n");
-                                }
+#ifdef _WITH_ORIG
 				if (mb_xfered)
-					printf("|%1c%-14.14s/%-9.9s %-2.2s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, mb_xfered);
+					printf("|%1c%-16.16s/%-10.10s | %-15s | XFER: %13.1fMB |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, mb_xfered);
 				else
-					printf("|%1c%-14.14s/%-9.9s %-2.2s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, pct, bar);
+					printf("|%1c%-16.16s/%-10.10s | %-15s | %3.0f%%: %-15.15s |\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, pct, bar);
 
-                                printf("| %-11.11s %15.15s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, userip, online, filename);
+				printf("| %-27.27s | since %8.8s  | file: %-15.15s |\n", user[x].tagline, online, filename);
 
 				printf("+-----------------------------------------------------------------------+\n");
+#endif
+				if (mb_xfered)
+					printf("%s%1c%-14.14s/%-9.9s %-2.2s | %-15s | XFER: %13.1fMB %s\n", delimiter, maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, mb_xfered, delimiter);
+				else
+					printf("%s%1c%-14.14s/%-9.9s %-2.2s | %-15s | %3.0f%%: %-15.15s %s\n", delimiter, maskchar, user[x].username, get_g_name(user[x].groupid), iso_code, status, pct, bar, delimiter);
+
+                                printf("%s %-11.11s %15.15s | since %8.8s  | file: %-15.15s %s\n", delimiter, user[x].tagline, userip, online, filename, delimiter);
+
+				if (strlen(separator))
+					show(separator);
 			} else if (raw == 1 && (showall || (!noshow && !mask && !(maskchar == '*')))) {
 				/*
 				 * Maskeduser / Username / GroupName / Status
 				 * / TagLine / Online / Filename / Part
 				 * up/down-loaded / Current dir / PID
 				 */
-                                if (orig) {
-                                        printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
-                                }
+#ifdef _WITH_ORIG
+				printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
+#endif
                                 printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\" \"%s\" \"%s\" %s\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid, user[x].host, userip, country);
 			} else if (showall || (!noshow && !mask && !(maskchar == '*'))) {
 				printf("%s|%s|%s|%s|%s\n", user[x].username, get_g_name(user[x].groupid), user[x].tagline, status, filename);
@@ -721,9 +714,9 @@ showusers(int n, int mode, char *ucomp, char raw)
 				else
 					printf("%s : %1c%s/%s has been online for %8.8s.\n", status, maskchar, user[x].username, get_g_name(user[x].groupid), online);
 			} else if (raw == 1 && (showall || (!noshow && !mask && !(maskchar == '*')))) {
-                                if (orig) {
-                                        printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
-                                }
+#ifdef _WITH_ORIG
+				printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\"\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid);
+#endif
                                 printf("\"USER\" \"%1c\" \"%s\" \"%s\" %s \"%s\" \"%s\" \"%s\" \"%.1f%s\" \"%s\" \"%d\" \"%s\" \"%s\" %s\n", maskchar, user[x].username, get_g_name(user[x].groupid), status, user[x].tagline, online, filename, (pct >= 0 ? pct : mb_xfered), (pct >= 0 ? "%" : "MB"), user[x].currentdir, user[x].procid, user[x].host, userip, country);
 			} else if (showall || (!noshow && !mask && !(maskchar == '*'))) {
 				printf("%s|%s|%s|%s|%s\n", user[x].username, get_g_name(user[x].groupid), user[x].tagline, status, filename);
@@ -838,6 +831,10 @@ readconfig(char *arg)
 					count_hidden = tmp;
 				else if (!memcmp(buf + l_b, "mmdb_file", 8))
 					mmdb_file = tmp;
+				else if (!memcmp(buf + l_b, "separatorfile", 10))
+					separator = tmp;
+				else if (!memcmp(buf + l_b, "delimiter", 5))
+					delimiter = tmp;
 				else {
 					if (!memcmp(buf + l_b, "seeallflags", 11))
 						showall = compareflags(getenv("FLAGS"), tmp);
@@ -894,7 +891,8 @@ show(char *filename)
 	char           *fname = 0;
 
 	fname = malloc(strlen(glpath) + strlen(filename) + 2);
-	sprintf(fname, "%s/%s", glpath, filename);
+	if (!check_path(fname))
+		sprintf(fname, "%s", strrchr(filename, '/') + 1);
 	if (!check_path(fname))
 		sprintf(fname, "/%s", filename);
 
@@ -921,11 +919,11 @@ showtotals(char raw)
 		if ((total_up_speed > threshold) || (total_dn_speed > threshold)) {
 			total_up_speed = (total_up_speed / 1024);
 			total_dn_speed = (total_dn_speed / 1024);
-			printf("| Up: %2i / %7.2fMB/s | Dn: %2i / %7.2fMB/s | Total: %2i / %7.2fMB/s |\n", uploads, total_up_speed, downloads, total_dn_speed, uploads + downloads, total_up_speed + total_dn_speed);
+			printf(": Up: %2i / %7.2fMB/s | Dn: %2i / %7.2fMB/s | Total: %2i / %7.2fMB/s :\n", uploads, total_up_speed, downloads, total_dn_speed, uploads + downloads, total_up_speed + total_dn_speed);
 		} else {
-			printf("| Up: %2i / %7.0fKB/s | Dn: %2i / %7.0fKB/s | Total: %2i / %7.0fKB/s |\n", uploads, total_up_speed, downloads, total_dn_speed, uploads + downloads, total_up_speed + total_dn_speed);
+			printf(": Up: %2i / %7.0fKB/s | Dn: %2i / %7.0fKB/s | Total: %2i / %7.0fKB/s :\n", uploads, total_up_speed, downloads, total_dn_speed, uploads + downloads, total_up_speed + total_dn_speed);
 		}
-		printf("| Currently %2i of %2i users are online...                                |\n", onlineusers, maxusers);
+		printf(": Currently %2i of %2i users are online...                                :\n", onlineusers, maxusers);
 	} else if (raw == 1) {
 		/*
 		 * UpUsers / UpSpeed / DnUsers / DnSpeed / TotalUsers /
