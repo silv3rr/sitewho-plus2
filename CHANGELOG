@@ -1,8 +1,9 @@
-20200529 -      - GeoIP2 info added to all output modes
-20180716 -      - Added host, ip and country code (GeoIP2) to --raw output
-20110918 -	- Proper support for the existing 64bit glftps
-		- Updated matchpath and strcomp
-xxxxxxxx -	- Fucked up one small thing (caused segfault)
+20200619 -      + Added some more theming
+20200529 -      + GeoIP2 info added to all output modes
+20180716 -      + Added host, ip and country code (GeoIP2) to --raw output
+20110918 -	+ Proper support for the existing 64bit glftpds
+		+ Updated matchpath and strcomp
+xxxxxxxx -	+ Fucked up one small thing (caused segfault)
 		+ Completly rewritten... phew !!! Config file has changed
 		+ sitewho <username> now shows shows actions of <username>
 		  in bot compatible form
