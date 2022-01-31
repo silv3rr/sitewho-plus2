@@ -11,6 +11,7 @@ Why +2? Because this version of sitewho adds 2 things:
 Make sure you have libmaxminddb installed or you will get errors about "missing header" and "record_info_for_database failed".
 
 Debian: `apt install libmaxminddb-dev geoipupdate`
+
 RedHat: `yum install libmaxminddb-devel geoipupdate geoipupdate-cron`
 
 Or download from:
